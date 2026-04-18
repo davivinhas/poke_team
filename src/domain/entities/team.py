@@ -1,4 +1,4 @@
-from domain.entities.team_pokemon import TeamPokemon
+from src.domain.entities.team_pokemon import TeamPokemon
 
 
 class Team:

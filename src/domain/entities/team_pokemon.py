@@ -1,5 +1,5 @@
-from domain.entities.pokemon_specie import PokemonSpecie
-from domain.value_objects.ivs import IVs
+from src.domain.entities.pokemon_specie import PokemonSpecie
+from src.domain.value_objects.ivs import IVs
 
 
 class TeamPokemon:
@@ -13,14 +13,8 @@ class TeamPokemon:
         if not isinstance(ivs, IVs):
             raise ValueError("Invalid IVs")
 
-        if len(ivs) != 6:
-            raise ValueError("IVs must have 6 values")
-
         if len(specie.types) > 2:
             raise ValueError("Specie can have at most 2 types")
-
-        if len(self._moves) > 4:
-            raise ValueError("Pokemon can have at most 4 moves")
 
         self.id = id
         self.specie = specie

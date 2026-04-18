@@ -1,5 +1,5 @@
-from domain.value_objects.base_stats import BaseStats
-from domain.value_objects.types import Types
+from src.domain.value_objects.base_stats import BaseStats
+from src.domain.value_objects.types import Types
 
 
 class PokemonSpecie:
@@ -22,6 +22,18 @@ class PokemonSpecie:
 
         if not isinstance(base_stats, BaseStats):
             raise ValueError("Invalid base stats")
+
+        if not types:
+            raise ValueError("Types cannot be empty")
+
+        if not isinstance(types, tuple):
+            raise ValueError("Types must be a tuple")
+
+        if not all(isinstance(t, Types) for t in types):
+            raise ValueError("Invalid types")
+
+        if len(types) > 2 or len(types) <= 0:
+            raise ValueError("Specie need to have at least 1 and at most 2 types")
 
         self.id = id
         self.external_id = external_id

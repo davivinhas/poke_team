@@ -19,3 +19,13 @@ class BaseStats:
         self.special_attack = special_attack
         self.special_defense = special_defense
         self.speed = speed
+
+    def __eq__(self, value):
+        return (
+            self.hp == value.hp
+            and self.attack == value.attack
+            and self.defense == value.defense
+            and self.special_attack == value.special_attack
+            and self.special_defense == value.special_defense
+            and self.speed == value.speed
+        )
