@@ -2,6 +2,10 @@ from src.domain.entities.team_pokemon import TeamPokemon
 
 
 class Team:
+    """
+    Aggregate Root that represents a team and includes its pokemons
+    """
+
     def __init__(self, id: int, name: str):
         if id <= 0:
             raise ValueError("Invalid id")

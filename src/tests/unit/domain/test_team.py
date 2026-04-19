@@ -15,7 +15,7 @@ def _build_team_pokemon() -> TeamPokemon:
         (Types.ELECTRIC,),
     )
     ivs = IVs(31, 31, 31, 31, 31, 31)
-    return TeamPokemon(1, specie, ivs)
+    return TeamPokemon(1, specie, ivs, [])
 
 
 def test_add_pokemon_to_team():
