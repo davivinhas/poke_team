@@ -9,6 +9,8 @@ from src.infraestructure.pokeapi.pokemon_species_gateway import (
     PokeApiPokemonSpeciesGateway,
 )
 
+API_URL = "https://example.test/api/v2"
+
 
 def _pokemon_payload(
     pokemon_id: int,
@@ -73,29 +75,30 @@ def _build_gateway_with_responses(
 def test_search_without_filters_hydrates_pokemon_page_from_list_endpoint():
     requested_urls: list[str] = []
     responses = {
-        "https://pokeapi.co/api/v2/pokemon/?limit=2&offset=0": _list_payload(
+        f"{API_URL}/pokemon/?limit=2&offset=0": _list_payload(
             {
                 "name": "pikachu",
-                "url": "https://pokeapi.co/api/v2/pokemon/25/",
+                "url": f"{API_URL}/pokemon/25/",
             },
             {
                 "name": "squirtle",
-                "url": "https://pokeapi.co/api/v2/pokemon/7/",
+                "url": f"{API_URL}/pokemon/7/",
             },
-            next_url="https://pokeapi.co/api/v2/pokemon/?limit=2&offset=2",
+            next_url=f"{API_URL}/pokemon/?limit=2&offset=2",
         ),
-        "https://pokeapi.co/api/v2/pokemon/25/": _pokemon_payload(
+        f"{API_URL}/pokemon/25/": _pokemon_payload(
             25,
             "pikachu",
             ["electric"],
         ),
-        "https://pokeapi.co/api/v2/pokemon/7/": _pokemon_payload(
+        f"{API_URL}/pokemon/7/": _pokemon_payload(
             7,
             "squirtle",
             ["water"],
         ),
     }
     gateway = _build_gateway_with_responses(responses, requested_urls)
+    gateway._base_url = API_URL
 
     result = asyncio.run(gateway.search(limit=2))
 
@@ -108,78 +111,80 @@ def test_search_without_filters_hydrates_pokemon_page_from_list_endpoint():
         (Types.WATER,),
     ]
     assert result.next_cursor == "2"
-    assert requested_urls[0] == "https://pokeapi.co/api/v2/pokemon/?limit=2&offset=0"
+    assert requested_urls[0] == f"{API_URL}/pokemon/?limit=2&offset=0"
     assert set(requested_urls[1:]) == {
-        "https://pokeapi.co/api/v2/pokemon/25/",
-        "https://pokeapi.co/api/v2/pokemon/7/",
+        f"{API_URL}/pokemon/25/",
+        f"{API_URL}/pokemon/7/",
     }
 
 
 def test_search_by_exact_name_returns_single_result_page():
     requested_urls: list[str] = []
     responses = {
-        "https://pokeapi.co/api/v2/pokemon/pikachu/": _pokemon_payload(
+        f"{API_URL}/pokemon/pikachu/": _pokemon_payload(
             25,
             "pikachu",
             ["electric"],
         )
     }
     gateway = _build_gateway_with_responses(responses, requested_urls)
+    gateway._base_url = API_URL
 
     result = asyncio.run(gateway.search(name="pikachu"))
 
     assert [specie.id for specie in result.items] == [None]
     assert [specie.name for specie in result.items] == ["pikachu"]
     assert result.next_cursor is None
-    assert requested_urls == ["https://pokeapi.co/api/v2/pokemon/pikachu/"]
+    assert requested_urls == [f"{API_URL}/pokemon/pikachu/"]
 
 
 def test_search_by_type_uses_type_endpoint_then_hydrates_selected_page():
     requested_urls: list[str] = []
     responses = {
-        "https://pokeapi.co/api/v2/type/electric/": {
+        f"{API_URL}/type/electric/": {
             "pokemon": [
                 {
                     "pokemon": {
                         "name": "pikachu",
-                        "url": "https://pokeapi.co/api/v2/pokemon/25/",
+                        "url": f"{API_URL}/pokemon/25/",
                     }
                 },
                 {
                     "pokemon": {
                         "name": "raichu",
-                        "url": "https://pokeapi.co/api/v2/pokemon/26/",
+                        "url": f"{API_URL}/pokemon/26/",
                     }
                 },
                 {
                     "pokemon": {
                         "name": "magnemite",
-                        "url": "https://pokeapi.co/api/v2/pokemon/81/",
+                        "url": f"{API_URL}/pokemon/81/",
                     }
                 },
             ]
         },
-        "https://pokeapi.co/api/v2/pokemon/26/": _pokemon_payload(
+        f"{API_URL}/pokemon/26/": _pokemon_payload(
             26,
             "raichu",
             ["electric"],
         ),
-        "https://pokeapi.co/api/v2/pokemon/81/": _pokemon_payload(
+        f"{API_URL}/pokemon/81/": _pokemon_payload(
             81,
             "magnemite",
             ["electric"],
         ),
     }
     gateway = _build_gateway_with_responses(responses, requested_urls)
+    gateway._base_url = API_URL
 
     result = asyncio.run(gateway.search(types=[Types.ELECTRIC], limit=2, cursor="1"))
 
     assert [specie.name for specie in result.items] == ["raichu", "magnemite"]
     assert result.next_cursor is None
-    assert requested_urls[0] == "https://pokeapi.co/api/v2/type/electric/"
+    assert requested_urls[0] == f"{API_URL}/type/electric/"
     assert set(requested_urls[1:]) == {
-        "https://pokeapi.co/api/v2/pokemon/26/",
-        "https://pokeapi.co/api/v2/pokemon/81/",
+        f"{API_URL}/pokemon/26/",
+        f"{API_URL}/pokemon/81/",
     }
 
 
@@ -191,7 +196,7 @@ def test_get_by_id_returns_none_when_pokeapi_returns_404():
         async def aclose(self) -> None:
             return None
 
-    gateway = PokeApiPokemonSpeciesGateway(client=FakeAsyncClient())
+    gateway = PokeApiPokemonSpeciesGateway(base_url=API_URL, client=FakeAsyncClient())
 
     assert asyncio.run(gateway.get_by_id(999999)) is None
 
@@ -208,7 +213,7 @@ def test_search_rejects_invalid_cursor():
         async def aclose(self) -> None:
             return None
 
-    gateway = PokeApiPokemonSpeciesGateway(client=FakeAsyncClient())
+    gateway = PokeApiPokemonSpeciesGateway(base_url=API_URL, client=FakeAsyncClient())
 
     with pytest.raises(ValueError, match="Cursor must be a numeric offset"):
         asyncio.run(gateway.search(cursor="next-page"))

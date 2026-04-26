@@ -9,10 +9,10 @@ from src.application.ports.pokemon_species_gateway import PokemonSpeciesGateway
 from src.domain.entities.pokemon_specie import PokemonSpecie
 from src.domain.value_objects.base_stats import BaseStats
 from src.domain.value_objects.types import Types
+from src.infraestructure.settings import get_external_api_url
 
 
 class PokeApiPokemonSpeciesGateway(PokemonSpeciesGateway):
-    BASE_URL = "https://pokeapi.co/api/v2"
     DEFAULT_HEADERS = {
         "Accept": "application/json",
         "User-Agent": "poke-team/1.0",
@@ -20,10 +20,10 @@ class PokeApiPokemonSpeciesGateway(PokemonSpeciesGateway):
 
     def __init__(
         self,
-        base_url: str = BASE_URL,
+        base_url: str | None = None,
         client: Optional[httpx.AsyncClient] = None,
     ) -> None:
-        self._base_url = base_url.rstrip("/")
+        self._base_url = (base_url or get_external_api_url()).rstrip("/")
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(
             headers=self.DEFAULT_HEADERS,

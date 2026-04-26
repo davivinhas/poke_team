@@ -6,6 +6,8 @@ import pytest
 from src.domain.value_objects.types import Types
 from src.infraestructure.pokeapi.movements_gateway import PokeApiMovementsGateway
 
+API_URL = "https://example.test/api/v2"
+
 
 def _move_payload(
     name: str,
@@ -53,23 +55,23 @@ def _build_gateway_with_responses(
 def test_search_by_type_hydrates_moves_from_type_endpoint():
     requested_urls: list[str] = []
     responses = {
-        "https://pokeapi.co/api/v2/type/electric/": {
+        f"{API_URL}/type/electric/": {
             "moves": [
                 {
                     "name": "thunderbolt",
-                    "url": "https://pokeapi.co/api/v2/move/85/",
+                    "url": f"{API_URL}/move/85/",
                 },
                 {
                     "name": "thunder",
-                    "url": "https://pokeapi.co/api/v2/move/87/",
+                    "url": f"{API_URL}/move/87/",
                 },
             ]
         },
-        "https://pokeapi.co/api/v2/move/85/": _move_payload(
+        f"{API_URL}/move/85/": _move_payload(
             "thunderbolt",
             "electric",
         ),
-        "https://pokeapi.co/api/v2/move/87/": _move_payload(
+        f"{API_URL}/move/87/": _move_payload(
             "thunder",
             "electric",
             power=110,
@@ -78,6 +80,7 @@ def test_search_by_type_hydrates_moves_from_type_endpoint():
         ),
     }
     gateway = _build_gateway_with_responses(responses, requested_urls)
+    gateway._base_url = API_URL
 
     result = asyncio.run(gateway.search(type=Types.ELECTRIC))
 
@@ -86,75 +89,77 @@ def test_search_by_type_hydrates_moves_from_type_endpoint():
         Types.ELECTRIC,
         Types.ELECTRIC,
     ]
-    assert requested_urls[0] == "https://pokeapi.co/api/v2/type/electric/"
+    assert requested_urls[0] == f"{API_URL}/type/electric/"
     assert set(requested_urls[1:]) == {
-        "https://pokeapi.co/api/v2/move/85/",
-        "https://pokeapi.co/api/v2/move/87/",
+        f"{API_URL}/move/85/",
+        f"{API_URL}/move/87/",
     }
 
 
 def test_search_by_specie_hydrates_moves_from_pokemon_endpoint():
     requested_urls: list[str] = []
     responses = {
-        "https://pokeapi.co/api/v2/pokemon/pikachu/": {
+        f"{API_URL}/pokemon/pikachu/": {
             "moves": [
                 {
                     "move": {
                         "name": "thunderbolt",
-                        "url": "https://pokeapi.co/api/v2/move/85/",
+                        "url": f"{API_URL}/move/85/",
                     }
                 }
             ]
         },
-        "https://pokeapi.co/api/v2/move/85/": _move_payload(
+        f"{API_URL}/move/85/": _move_payload(
             "thunderbolt",
             "electric",
         ),
     }
     gateway = _build_gateway_with_responses(responses, requested_urls)
+    gateway._base_url = API_URL
 
     result = asyncio.run(gateway.search(specie_name="pikachu"))
 
     assert [movement.name for movement in result] == ["thunderbolt"]
     assert requested_urls == [
-        "https://pokeapi.co/api/v2/pokemon/pikachu/",
-        "https://pokeapi.co/api/v2/move/85/",
+        f"{API_URL}/pokemon/pikachu/",
+        f"{API_URL}/move/85/",
     ]
 
 
 def test_search_with_type_and_specie_intersects_move_references():
     requested_urls: list[str] = []
     responses = {
-        "https://pokeapi.co/api/v2/pokemon/pikachu/": {
+        f"{API_URL}/pokemon/pikachu/": {
             "moves": [
                 {
                     "move": {
                         "name": "thunderbolt",
-                        "url": "https://pokeapi.co/api/v2/move/85/",
+                        "url": f"{API_URL}/move/85/",
                     }
                 },
                 {
                     "move": {
                         "name": "quick-attack",
-                        "url": "https://pokeapi.co/api/v2/move/98/",
+                        "url": f"{API_URL}/move/98/",
                     }
                 },
             ]
         },
-        "https://pokeapi.co/api/v2/type/electric/": {
+        f"{API_URL}/type/electric/": {
             "moves": [
                 {
                     "name": "thunderbolt",
-                    "url": "https://pokeapi.co/api/v2/move/85/",
+                    "url": f"{API_URL}/move/85/",
                 }
             ]
         },
-        "https://pokeapi.co/api/v2/move/85/": _move_payload(
+        f"{API_URL}/move/85/": _move_payload(
             "thunderbolt",
             "electric",
         ),
     }
     gateway = _build_gateway_with_responses(responses, requested_urls)
+    gateway._base_url = API_URL
 
     result = asyncio.run(gateway.search(type=Types.ELECTRIC, specie_name="pikachu"))
 
@@ -169,7 +174,7 @@ def test_search_returns_empty_list_when_specie_is_not_found():
         async def aclose(self) -> None:
             return None
 
-    gateway = PokeApiMovementsGateway(client=FakeAsyncClient())
+    gateway = PokeApiMovementsGateway(base_url=API_URL, client=FakeAsyncClient())
 
     assert asyncio.run(gateway.search(specie_name="missing")) == []
 
@@ -186,7 +191,7 @@ def test_search_requires_at_least_one_filter():
         async def aclose(self) -> None:
             return None
 
-    gateway = PokeApiMovementsGateway(client=FakeAsyncClient())
+    gateway = PokeApiMovementsGateway(base_url=API_URL, client=FakeAsyncClient())
 
     with pytest.raises(ValueError, match="At least one filter must be informed"):
         asyncio.run(gateway.search())

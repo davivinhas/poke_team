@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 import httpx
 import pytest
@@ -14,8 +15,11 @@ from src.infraestructure.repositories.in_memory_catalog_repositories import (
     InMemoryMovementsRepository,
     InMemoryPokemonSpeciesRepository,
 )
-from src.main import create_app
 from src.presentation.schemas.catalog import CursorPagePokemonSpeciesResponse
+
+os.environ["EXTERNAL_API_URL"] = "https://example.test/api/v2"
+
+from src.main import create_app
 
 
 def _get_route_endpoint(app, path: str):
@@ -23,6 +27,9 @@ def _get_route_endpoint(app, path: str):
         if isinstance(route, APIRoute) and route.path == path:
             return route.endpoint
     raise AssertionError(f"Route {path} not found")
+
+
+API_URL = os.environ["EXTERNAL_API_URL"]
 
 
 class FakeAsyncClient:
@@ -93,18 +100,18 @@ def _move_payload(
 
 def test_search_pokemon_species_endpoint_returns_paginated_response():
     responses = {
-        "https://pokeapi.co/api/v2/pokemon/?limit=1&offset=0": {
+        f"{API_URL}/pokemon/?limit=1&offset=0": {
             "count": 1,
             "next": None,
             "previous": None,
             "results": [
                 {
                     "name": "pikachu",
-                    "url": "https://pokeapi.co/api/v2/pokemon/25/",
+                    "url": f"{API_URL}/pokemon/25/",
                 }
             ],
         },
-        "https://pokeapi.co/api/v2/pokemon/25/": _pokemon_payload(
+        f"{API_URL}/pokemon/25/": _pokemon_payload(
             25,
             "pikachu",
             ["electric"],
@@ -114,10 +121,13 @@ def test_search_pokemon_species_endpoint_returns_paginated_response():
     app = create_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
-            client=FakeAsyncClient(responses=responses)
+            base_url=API_URL, client=FakeAsyncClient(responses=responses)
         ),
         movements_repository=InMemoryMovementsRepository(),
-        movements_gateway=PokeApiMovementsGateway(client=FakeAsyncClient()),
+        movements_gateway=PokeApiMovementsGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
     )
     endpoint = _get_route_endpoint(app, "/pokemon-species")
 
@@ -147,15 +157,15 @@ def test_search_pokemon_species_endpoint_returns_paginated_response():
 
 def test_search_movements_endpoint_returns_filtered_moves():
     responses = {
-        "https://pokeapi.co/api/v2/type/electric/": {
+        f"{API_URL}/type/electric/": {
             "moves": [
                 {
                     "name": "thunderbolt",
-                    "url": "https://pokeapi.co/api/v2/move/85/",
+                    "url": f"{API_URL}/move/85/",
                 }
             ]
         },
-        "https://pokeapi.co/api/v2/move/85/": _move_payload(
+        f"{API_URL}/move/85/": _move_payload(
             "thunderbolt",
             "electric",
         ),
@@ -163,10 +173,13 @@ def test_search_movements_endpoint_returns_filtered_moves():
 
     app = create_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
-        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(client=FakeAsyncClient()),
+        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
         movements_repository=InMemoryMovementsRepository(),
         movements_gateway=PokeApiMovementsGateway(
-            client=FakeAsyncClient(responses=responses)
+            base_url=API_URL, client=FakeAsyncClient(responses=responses)
         ),
     )
     endpoint = _get_route_endpoint(app, "/movements")
@@ -188,9 +201,15 @@ def test_search_movements_endpoint_returns_filtered_moves():
 def test_search_movements_endpoint_returns_400_when_no_filters_are_informed():
     app = create_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
-        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(client=FakeAsyncClient()),
+        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
         movements_repository=InMemoryMovementsRepository(),
-        movements_gateway=PokeApiMovementsGateway(client=FakeAsyncClient()),
+        movements_gateway=PokeApiMovementsGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
     )
     endpoint = _get_route_endpoint(app, "/movements")
 
@@ -203,17 +222,17 @@ def test_search_movements_endpoint_returns_400_when_no_filters_are_informed():
 
 def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
     responses = {
-        "https://pokeapi.co/api/v2/pokemon/pikachu/": {
+        f"{API_URL}/pokemon/pikachu/": {
             "moves": [
                 {
                     "move": {
                         "name": "thunderbolt",
-                        "url": "https://pokeapi.co/api/v2/move/85/",
+                        "url": f"{API_URL}/move/85/",
                     }
                 }
             ]
         },
-        "https://pokeapi.co/api/v2/move/85/": _move_payload(
+        f"{API_URL}/move/85/": _move_payload(
             "thunderbolt",
             "electric",
         ),
@@ -221,10 +240,13 @@ def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
 
     app = create_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
-        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(client=FakeAsyncClient()),
+        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
         movements_repository=InMemoryMovementsRepository(),
         movements_gateway=PokeApiMovementsGateway(
-            client=FakeAsyncClient(responses=responses)
+            base_url=API_URL, client=FakeAsyncClient(responses=responses)
         ),
     )
     endpoint = _get_route_endpoint(app, "/movements")
@@ -244,21 +266,25 @@ def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
 
 
 def test_search_movements_endpoint_returns_502_when_gateway_fails():
-    request = httpx.Request("GET", "https://pokeapi.co/api/v2/pokemon/pikachu/")
+    request = httpx.Request("GET", f"{API_URL}/pokemon/pikachu/")
     response = httpx.Response(403, request=request)
 
     app = create_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
-        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(client=FakeAsyncClient()),
+        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
         movements_repository=InMemoryMovementsRepository(),
         movements_gateway=PokeApiMovementsGateway(
+            base_url=API_URL,
             client=FakeAsyncClient(
                 exception=httpx.HTTPStatusError(
                     "Forbidden",
                     request=request,
                     response=response,
                 )
-            )
+            ),
         ),
     )
     endpoint = _get_route_endpoint(app, "/movements")
