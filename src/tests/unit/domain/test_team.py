@@ -1,3 +1,5 @@
+import pytest
+
 from src.domain.entities.pokemon_specie import PokemonSpecie
 from src.domain.entities.team import Team
 from src.domain.entities.team_pokemon import TeamPokemon
@@ -37,3 +39,16 @@ def test_can_rename_team():
     team = Team(1, "Team 1")
     team.rename("Team 2")
     assert team.name == "Team 2"
+
+
+def test_more_than_6_pokemons_in_team():
+    team = Team(1, "Team 1")
+    team.add_pokemon(_build_team_pokemon())
+    team.add_pokemon(_build_team_pokemon())
+    team.add_pokemon(_build_team_pokemon())
+    team.add_pokemon(_build_team_pokemon())
+    team.add_pokemon(_build_team_pokemon())
+    team.add_pokemon(_build_team_pokemon())
+
+    with pytest.raises(ValueError):
+        team.add_pokemon(_build_team_pokemon())

@@ -5,13 +5,13 @@ from src.domain.value_objects.types import Types
 class PokemonSpecie:
     def __init__(
         self,
-        id: int,
+        id: int | None,
         external_id: int,
         name: str,
         base_stats: BaseStats,
         types: tuple[Types, ...],
     ):
-        if id is None or id <= 0:
+        if id is not None and id <= 0:
             raise ValueError("Invalid id")
 
         if external_id is None or external_id <= 0:

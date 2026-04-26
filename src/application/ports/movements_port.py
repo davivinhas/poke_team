@@ -5,11 +5,15 @@ from src.domain.entities.movement import Movement
 from src.domain.value_objects.types import Types
 
 
-class MovementsGateway(ABC):
+class MovementsRepositoryPort(ABC):
     @abstractmethod
-    async def search(
+    def search(
         self,
         type: Optional[Types] = None,
         specie_name: Optional[str] = None,
     ) -> Optional[list[Movement]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def save(self, movement: Movement) -> None:
         raise NotImplementedError

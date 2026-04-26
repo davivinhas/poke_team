@@ -157,14 +157,15 @@ def test_pokemon_specie_with_empty_types():
 
 
 def test_pokemon_specie_with_null_id():
-    with pytest.raises(ValueError):
-        PokemonSpecie(
-            None,
-            25,
-            "pikachu",
-            BaseStats(35, 55, 40, 50, 50, 90),
-            (Types.ELECTRIC,),
-        )
+    pokemon_specie = PokemonSpecie(
+        None,
+        25,
+        "pikachu",
+        BaseStats(35, 55, 40, 50, 50, 90),
+        (Types.ELECTRIC,),
+    )
+
+    assert pokemon_specie.id is None
 
 
 def test_pokemon_specie_with_null_external_id():
