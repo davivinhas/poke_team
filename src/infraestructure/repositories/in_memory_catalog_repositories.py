@@ -67,16 +67,31 @@ class InMemoryPokemonSpeciesRepository(PokemonSpeciesRepositoryPort):
 class InMemoryMovementsRepository(MovementsRepositoryPort):
     def __init__(self) -> None:
         self._movements_by_name: dict[str, Movement] = {}
+        self._movement_names_by_specie_id: dict[int, set[str]] = {}
 
     def search(
         self,
         type: Optional[Types] = None,
-        specie_name: Optional[str] = None,
+        specie_id: Optional[int] = None,
     ) -> Optional[list[Movement]]:
-        movements = list(self._movements_by_name.values())
+        movements: list[Movement]
+        if specie_id is None:
+            movements = list(self._movements_by_name.values())
+        else:
+            movement_names = self._movement_names_by_specie_id.get(specie_id, set())
+            movements = [
+                movement
+                for movement_name, movement in self._movements_by_name.items()
+                if movement_name in movement_names
+            ]
+
         if type is not None:
             movements = [movement for movement in movements if movement.type == type]
         return movements
 
     def save(self, movement: Movement) -> None:
         self._movements_by_name[movement.name] = movement
+
+    def link_to_specie(self, specie_id: int, movement_name: str) -> None:
+        movement_names = self._movement_names_by_specie_id.setdefault(specie_id, set())
+        movement_names.add(movement_name)
