@@ -16,4 +16,4 @@ class SearchMovementsUseCase:
     def execute(
         self, type: Optional[Types] = None, specie_name: Optional[str] = None
     ) -> Optional[list[Movement]]:
-        return self.repository.search(type, specie_name)
+        return self.repository.search(type=type)

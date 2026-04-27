@@ -20,5 +20,4 @@ class Types(Enum):
     DARK = "dark"
     STEEL = "steel"
     FAIRY = "fairy"
-    UNKNOWN = "unknown"
     SHADOW = "shadow"

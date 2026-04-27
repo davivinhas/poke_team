@@ -10,10 +10,14 @@ class MovementsRepositoryPort(ABC):
     def search(
         self,
         type: Optional[Types] = None,
-        specie_name: Optional[str] = None,
+        specie_id: Optional[int] = None,
     ) -> Optional[list[Movement]]:
         raise NotImplementedError
 
     @abstractmethod
     def save(self, movement: Movement) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def link_to_specie(self, specie_id: int, movement_name: str) -> None:
         raise NotImplementedError

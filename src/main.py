@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from src.application.ports.movements_gateway import MovementsGateway
@@ -19,6 +20,8 @@ from src.infraestructure.repositories import (
     InMemoryPokemonSpeciesRepository,
 )
 from src.presentation.routers import create_catalog_router
+
+load_dotenv()
 
 
 def create_app(
@@ -41,6 +44,8 @@ def create_app(
     movements_use_case = SearchMovementsUseCase(
         repository=movements_repository,
         gateway=movements_gateway,
+        pokemon_species_repository=pokemon_species_repository,
+        pokemon_species_gateway=pokemon_species_gateway,
     )
 
     @asynccontextmanager

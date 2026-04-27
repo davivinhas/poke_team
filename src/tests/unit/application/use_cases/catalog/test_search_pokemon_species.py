@@ -20,7 +20,7 @@ def _build_specie(id: int, external_id: int, name: str) -> PokemonSpecie:
     )
 
 
-def test_search_pokemon_species_uses_gateway_and_persists_results():
+def test_search_pokemon_species_listing_uses_gateway_and_persists_results():
     repository = Mock()
     gateway = AsyncMock()
     pikachu = _build_specie(1, 25, "pikachu")
@@ -35,38 +35,69 @@ def test_search_pokemon_species_uses_gateway_and_persists_results():
 
     result = asyncio.run(
         use_case.execute(
-            name="pikachu",
             types=[Types.ELECTRIC],
             limit=5,
-            cursor="cursor-1",
+            cursor="1",
         )
     )
 
     assert result is expected_page
     gateway.search.assert_awaited_once_with(
-        name="pikachu",
+        name=None,
         types=[Types.ELECTRIC],
         limit=5,
-        cursor="cursor-1",
+        cursor="1",
     )
+    repository.search.assert_not_called()
     repository.save.assert_has_calls([call(pikachu), call(raichu)])
 
 
-def test_search_pokemon_species_returns_empty_page_without_persisting():
+def test_search_pokemon_species_returns_cached_exact_name_without_using_gateway():
     repository = Mock()
     gateway = AsyncMock()
-    expected_page = CursorPage(items=[], next_cursor=None)
-    gateway.search.return_value = expected_page
+    pikachu = _build_specie(1, 25, "pikachu")
+    repository.search.return_value = CursorPage(items=[pikachu], next_cursor=None)
 
     use_case = SearchPokemonSpeciesUseCase(repository, gateway)
 
-    result = asyncio.run(use_case.execute(name="missing"))
+    result = asyncio.run(use_case.execute(name=" Pikachu "))
 
-    assert result is expected_page
-    gateway.search.assert_awaited_once_with(
-        name="missing",
+    assert result.items == [pikachu]
+    assert result.next_cursor is None
+    repository.search.assert_called_once_with(
+        name="pikachu",
         types=None,
         limit=10,
         cursor=None,
     )
+    gateway.search.assert_not_awaited()
     repository.save.assert_not_called()
+
+
+def test_search_pokemon_species_falls_back_to_gateway_when_name_is_not_cached():
+    repository = Mock()
+    gateway = AsyncMock()
+    expected_page = CursorPage(
+        items=[_build_specie(1, 6, "charizard")], next_cursor=None
+    )
+    repository.search.return_value = CursorPage(items=[], next_cursor=None)
+    gateway.search.return_value = expected_page
+
+    use_case = SearchPokemonSpeciesUseCase(repository, gateway)
+
+    result = asyncio.run(use_case.execute(name="charizard"))
+
+    assert result is expected_page
+    repository.search.assert_called_once_with(
+        name="charizard",
+        types=None,
+        limit=10,
+        cursor=None,
+    )
+    gateway.search.assert_awaited_once_with(
+        name="charizard",
+        types=None,
+        limit=10,
+        cursor=None,
+    )
+    repository.save.assert_called_once_with(expected_page.items[0])

@@ -6,6 +6,8 @@ import pytest
 from fastapi import HTTPException
 from fastapi.routing import APIRoute
 
+from src.domain.entities.pokemon_specie import PokemonSpecie
+from src.domain.value_objects.base_stats import BaseStats
 from src.domain.value_objects.types import Types
 from src.infraestructure.pokeapi.movements_gateway import PokeApiMovementsGateway
 from src.infraestructure.pokeapi.pokemon_species_gateway import (
@@ -98,6 +100,21 @@ def _move_payload(
     }
 
 
+def _stored_specie(
+    external_id: int,
+    name: str,
+    types: tuple[Types, ...],
+    base_stats: BaseStats,
+) -> PokemonSpecie:
+    return PokemonSpecie(
+        id=None,
+        external_id=external_id,
+        name=name,
+        base_stats=base_stats,
+        types=types,
+    )
+
+
 def test_search_pokemon_species_endpoint_returns_paginated_response():
     responses = {
         f"{API_URL}/pokemon/?limit=1&offset=0": {
@@ -153,6 +170,93 @@ def test_search_pokemon_species_endpoint_returns_paginated_response():
         ],
         "next_cursor": None,
     }
+
+
+def test_search_pokemon_species_endpoint_uses_cached_name_match_before_gateway():
+    repository = InMemoryPokemonSpeciesRepository()
+    repository.save(
+        _stored_specie(
+            external_id=6,
+            name="charizard",
+            base_stats=BaseStats(78, 84, 78, 109, 85, 100),
+            types=(Types.FIRE, Types.FLYING),
+        )
+    )
+    request = httpx.Request("GET", f"{API_URL}/pokemon/charizard/")
+    response = httpx.Response(502, request=request)
+
+    app = create_app(
+        pokemon_species_repository=repository,
+        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(
+                exception=httpx.HTTPStatusError(
+                    "Bad Gateway",
+                    request=request,
+                    response=response,
+                )
+            ),
+        ),
+        movements_repository=InMemoryMovementsRepository(),
+        movements_gateway=PokeApiMovementsGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
+    )
+    endpoint = _get_route_endpoint(app, "/pokemon-species")
+
+    result = asyncio.run(endpoint(name="charizard"))
+
+    assert result.model_dump() == {
+        "items": [
+            {
+                "id": 1,
+                "external_id": 6,
+                "name": "charizard",
+                "base_stats": {
+                    "hp": 78,
+                    "attack": 84,
+                    "defense": 78,
+                    "special_attack": 109,
+                    "special_defense": 85,
+                    "speed": 100,
+                },
+                "types": ["fire", "flying"],
+            }
+        ],
+        "next_cursor": None,
+    }
+
+
+def test_search_pokemon_species_endpoint_returns_502_for_listing_when_gateway_fails():
+    request = httpx.Request("GET", f"{API_URL}/pokemon/?limit=10&offset=0")
+    response = httpx.Response(502, request=request)
+
+    app = create_app(
+        pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
+        pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(
+                exception=httpx.HTTPStatusError(
+                    "Bad Gateway",
+                    request=request,
+                    response=response,
+                )
+            ),
+        ),
+        movements_repository=InMemoryMovementsRepository(),
+        movements_gateway=PokeApiMovementsGateway(
+            base_url=API_URL,
+            client=FakeAsyncClient(),
+        ),
+    )
+    endpoint = _get_route_endpoint(app, "/pokemon-species")
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(endpoint(limit=10))
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Failed to fetch pokemon species from PokeAPI"
 
 
 def test_search_movements_endpoint_returns_filtered_moves():
@@ -221,6 +325,13 @@ def test_search_movements_endpoint_returns_400_when_no_filters_are_informed():
 
 
 def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
+    species_responses = {
+        f"{API_URL}/pokemon/pikachu/": _pokemon_payload(
+            25,
+            "pikachu",
+            ["electric"],
+        )
+    }
     responses = {
         f"{API_URL}/pokemon/pikachu/": {
             "moves": [
@@ -242,7 +353,7 @@ def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
-            client=FakeAsyncClient(),
+            client=FakeAsyncClient(responses=species_responses),
         ),
         movements_repository=InMemoryMovementsRepository(),
         movements_gateway=PokeApiMovementsGateway(
@@ -268,12 +379,19 @@ def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
 def test_search_movements_endpoint_returns_502_when_gateway_fails():
     request = httpx.Request("GET", f"{API_URL}/pokemon/pikachu/")
     response = httpx.Response(403, request=request)
+    species_responses = {
+        f"{API_URL}/pokemon/pikachu/": _pokemon_payload(
+            25,
+            "pikachu",
+            ["electric"],
+        )
+    }
 
     app = create_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
-            client=FakeAsyncClient(),
+            client=FakeAsyncClient(responses=species_responses),
         ),
         movements_repository=InMemoryMovementsRepository(),
         movements_gateway=PokeApiMovementsGateway(
