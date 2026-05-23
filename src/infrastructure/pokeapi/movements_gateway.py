@@ -6,7 +6,7 @@ import httpx
 from src.application.ports.movements_gateway import MovementsGateway
 from src.domain.entities.movement import Movement
 from src.domain.value_objects.types import Types
-from src.infraestructure.settings import get_external_api_url
+from src.infrastructure.settings import get_external_api_url
 
 
 class PokeApiMovementsGateway(MovementsGateway):

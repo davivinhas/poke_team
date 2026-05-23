@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from src.domain.value_objects.types import Types
-from src.infraestructure.pokeapi.movements_gateway import PokeApiMovementsGateway
+from src.infrastructure.pokeapi.movements_gateway import PokeApiMovementsGateway
 
 API_URL = "https://example.test/api/v2"
 

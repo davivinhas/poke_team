@@ -5,7 +5,7 @@ import pytest
 
 from src.application.pagination.cursor_page import CursorPage
 from src.domain.value_objects.types import Types
-from src.infraestructure.pokeapi.pokemon_species_gateway import (
+from src.infrastructure.pokeapi.pokemon_species_gateway import (
     PokeApiPokemonSpeciesGateway,
 )
 

@@ -1,21 +1,26 @@
-import asyncio
 import os
 
 import httpx
-import pytest
-from fastapi import HTTPException
-from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
+from src.application.use_cases.catalog.search_movements import SearchMovementsUseCase
+from src.application.use_cases.catalog.search_pokemon_species import (
+    SearchPokemonSpeciesUseCase,
+)
 
 from src.domain.entities.pokemon_specie import PokemonSpecie
 from src.domain.value_objects.base_stats import BaseStats
 from src.domain.value_objects.types import Types
-from src.infraestructure.pokeapi.movements_gateway import PokeApiMovementsGateway
-from src.infraestructure.pokeapi.pokemon_species_gateway import (
+from src.infrastructure.pokeapi.movements_gateway import PokeApiMovementsGateway
+from src.infrastructure.pokeapi.pokemon_species_gateway import (
     PokeApiPokemonSpeciesGateway,
 )
-from src.infraestructure.repositories.in_memory_catalog_repositories import (
+from src.infrastructure.repositories.in_memory_catalog_repositories import (
     InMemoryMovementsRepository,
     InMemoryPokemonSpeciesRepository,
+)
+from src.presentation.dependencies import (
+    get_search_movements_use_case,
+    get_search_pokemon_species_use_case,
 )
 from src.presentation.schemas.catalog import CursorPagePokemonSpeciesResponse
 
@@ -23,15 +28,38 @@ os.environ["EXTERNAL_API_URL"] = "https://example.test/api/v2"
 
 from src.main import create_app
 
-
-def _get_route_endpoint(app, path: str):
-    for route in app.router.routes:
-        if isinstance(route, APIRoute) and route.path == path:
-            return route.endpoint
-    raise AssertionError(f"Route {path} not found")
-
-
 API_URL = os.environ["EXTERNAL_API_URL"]
+
+
+def _build_test_app(
+    pokemon_species_repository: InMemoryPokemonSpeciesRepository,
+    pokemon_species_gateway: PokeApiPokemonSpeciesGateway,
+    movements_repository: InMemoryMovementsRepository,
+    movements_gateway: PokeApiMovementsGateway,
+):
+    app = create_app()
+
+    def _pokemon_species_use_case_override() -> SearchPokemonSpeciesUseCase:
+        return SearchPokemonSpeciesUseCase(
+            repository=pokemon_species_repository,
+            gateway=pokemon_species_gateway,
+        )
+
+    def _movements_use_case_override() -> SearchMovementsUseCase:
+        return SearchMovementsUseCase(
+            repository=movements_repository,
+            gateway=movements_gateway,
+            pokemon_species_repository=pokemon_species_repository,
+            pokemon_species_gateway=pokemon_species_gateway,
+        )
+
+    app.dependency_overrides[get_search_pokemon_species_use_case] = (
+        _pokemon_species_use_case_override
+    )
+    app.dependency_overrides[get_search_movements_use_case] = (
+        _movements_use_case_override
+    )
+    return app
 
 
 class FakeAsyncClient:
@@ -135,7 +163,7 @@ def test_search_pokemon_species_endpoint_returns_paginated_response():
         ),
     }
 
-    app = create_app(
+    app = _build_test_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL, client=FakeAsyncClient(responses=responses)
@@ -146,12 +174,12 @@ def test_search_pokemon_species_endpoint_returns_paginated_response():
             client=FakeAsyncClient(),
         ),
     )
-    endpoint = _get_route_endpoint(app, "/pokemon-species")
+    with TestClient(app) as client:
+        response = client.get("/pokemon-species", params={"limit": 1})
 
-    response = asyncio.run(endpoint(limit=1))
-
-    assert isinstance(response, CursorPagePokemonSpeciesResponse)
-    assert response.model_dump() == {
+    assert response.status_code == 200
+    payload = response.json()
+    assert CursorPagePokemonSpeciesResponse.model_validate(payload).model_dump() == {
         "items": [
             {
                 "id": 1,
@@ -185,7 +213,7 @@ def test_search_pokemon_species_endpoint_uses_cached_name_match_before_gateway()
     request = httpx.Request("GET", f"{API_URL}/pokemon/charizard/")
     response = httpx.Response(502, request=request)
 
-    app = create_app(
+    app = _build_test_app(
         pokemon_species_repository=repository,
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
@@ -203,11 +231,11 @@ def test_search_pokemon_species_endpoint_uses_cached_name_match_before_gateway()
             client=FakeAsyncClient(),
         ),
     )
-    endpoint = _get_route_endpoint(app, "/pokemon-species")
+    with TestClient(app) as client:
+        response = client.get("/pokemon-species", params={"name": "charizard"})
 
-    result = asyncio.run(endpoint(name="charizard"))
-
-    assert result.model_dump() == {
+    assert response.status_code == 200
+    assert response.json() == {
         "items": [
             {
                 "id": 1,
@@ -232,7 +260,7 @@ def test_search_pokemon_species_endpoint_returns_502_for_listing_when_gateway_fa
     request = httpx.Request("GET", f"{API_URL}/pokemon/?limit=10&offset=0")
     response = httpx.Response(502, request=request)
 
-    app = create_app(
+    app = _build_test_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
@@ -250,13 +278,11 @@ def test_search_pokemon_species_endpoint_returns_502_for_listing_when_gateway_fa
             client=FakeAsyncClient(),
         ),
     )
-    endpoint = _get_route_endpoint(app, "/pokemon-species")
+    with TestClient(app) as client:
+        response = client.get("/pokemon-species", params={"limit": 10})
 
-    with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(endpoint(limit=10))
-
-    assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == "Failed to fetch pokemon species from PokeAPI"
+    assert response.status_code == 502
+    assert response.json() == {"detail": "Failed to fetch pokemon species from PokeAPI"}
 
 
 def test_search_movements_endpoint_returns_filtered_moves():
@@ -275,7 +301,7 @@ def test_search_movements_endpoint_returns_filtered_moves():
         ),
     }
 
-    app = create_app(
+    app = _build_test_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
@@ -286,11 +312,11 @@ def test_search_movements_endpoint_returns_filtered_moves():
             base_url=API_URL, client=FakeAsyncClient(responses=responses)
         ),
     )
-    endpoint = _get_route_endpoint(app, "/movements")
+    with TestClient(app) as client:
+        response = client.get("/movements", params={"type": Types.ELECTRIC.value})
 
-    response = asyncio.run(endpoint(type=Types.ELECTRIC))
-
-    assert [movement.model_dump() for movement in response] == [
+    assert response.status_code == 200
+    assert response.json() == [
         {
             "name": "thunderbolt",
             "power": 90,
@@ -303,7 +329,7 @@ def test_search_movements_endpoint_returns_filtered_moves():
 
 
 def test_search_movements_endpoint_returns_400_when_no_filters_are_informed():
-    app = create_app(
+    app = _build_test_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
@@ -315,13 +341,11 @@ def test_search_movements_endpoint_returns_400_when_no_filters_are_informed():
             client=FakeAsyncClient(),
         ),
     )
-    endpoint = _get_route_endpoint(app, "/movements")
+    with TestClient(app) as client:
+        response = client.get("/movements")
 
-    with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(endpoint())
-
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "At least one filter must be informed"
+    assert response.status_code == 400
+    assert response.json() == {"detail": "At least one filter must be informed"}
 
 
 def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
@@ -349,7 +373,7 @@ def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
         ),
     }
 
-    app = create_app(
+    app = _build_test_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
@@ -360,11 +384,17 @@ def test_search_movements_endpoint_accepts_blank_type_when_specie_is_informed():
             base_url=API_URL, client=FakeAsyncClient(responses=responses)
         ),
     )
-    endpoint = _get_route_endpoint(app, "/movements")
+    with TestClient(app) as client:
+        response = client.get(
+            "/movements",
+            params={
+                "type": "",
+                "specie_name": "pikachu",
+            },
+        )
 
-    response = asyncio.run(endpoint(type="", specie_name="pikachu"))
-
-    assert [movement.model_dump() for movement in response] == [
+    assert response.status_code == 200
+    assert response.json() == [
         {
             "name": "thunderbolt",
             "power": 90,
@@ -387,7 +417,7 @@ def test_search_movements_endpoint_returns_502_when_gateway_fails():
         )
     }
 
-    app = create_app(
+    app = _build_test_app(
         pokemon_species_repository=InMemoryPokemonSpeciesRepository(),
         pokemon_species_gateway=PokeApiPokemonSpeciesGateway(
             base_url=API_URL,
@@ -405,10 +435,8 @@ def test_search_movements_endpoint_returns_502_when_gateway_fails():
             ),
         ),
     )
-    endpoint = _get_route_endpoint(app, "/movements")
+    with TestClient(app) as client:
+        response = client.get("/movements", params={"specie_name": "pikachu"})
 
-    with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(endpoint(specie_name="pikachu"))
-
-    assert exc_info.value.status_code == 502
-    assert exc_info.value.detail == "Failed to fetch movements from PokeAPI"
+    assert response.status_code == 502
+    assert response.json() == {"detail": "Failed to fetch movements from PokeAPI"}

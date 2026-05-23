@@ -1,4 +1,4 @@
-from src.infraestructure.repositories.in_memory_catalog_repositories import (
+from src.infrastructure.repositories.in_memory_catalog_repositories import (
     InMemoryMovementsRepository,
     InMemoryPokemonSpeciesRepository,
 )

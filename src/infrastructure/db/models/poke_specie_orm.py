@@ -12,11 +12,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.domain.value_objects.types import Types
-from src.infraestructure.db.base import Base
+from src.infrastructure.db.base import Base
 
 if TYPE_CHECKING:
-    from src.infraestructure.db.models.movements_orm import PokemonSpecieMovementORM
-    from src.infraestructure.db.models.types_orm import PokemonSpecieTypeORM
+    from src.infrastructure.db.models.movements_orm import PokemonSpecieMovementORM
+    from src.infrastructure.db.models.types_orm import PokemonSpecieTypeORM
 
 PokemonTypeEnum = Enum(Types, name="pokemon_type", native_enum=False)
 

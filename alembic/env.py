@@ -2,9 +2,9 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
-import src.infraestructure.db.models  # noqa: F401
+import src.infrastructure.db.models  # noqa: F401
 from alembic import context
-from src.infraestructure.db.base import Base
+from src.infrastructure.db.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

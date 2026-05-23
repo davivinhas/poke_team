@@ -9,7 +9,7 @@ from src.application.ports.pokemon_species_gateway import PokemonSpeciesGateway
 from src.domain.entities.pokemon_specie import PokemonSpecie
 from src.domain.value_objects.base_stats import BaseStats
 from src.domain.value_objects.types import Types
-from src.infraestructure.settings import get_external_api_url
+from src.infrastructure.settings import get_external_api_url
 
 
 class PokeApiPokemonSpeciesGateway(PokemonSpeciesGateway):

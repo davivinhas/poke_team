@@ -6,11 +6,11 @@ from sqlalchemy import CheckConstraint, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.domain.value_objects.types import Types
-from src.infraestructure.db.base import Base
-from src.infraestructure.db.models.poke_specie_orm import PokemonTypeEnum
+from src.infrastructure.db.base import Base
+from src.infrastructure.db.models.poke_specie_orm import PokemonTypeEnum
 
 if TYPE_CHECKING:
-    from src.infraestructure.db.models.poke_specie_orm import PokemonSpecieORM
+    from src.infrastructure.db.models.poke_specie_orm import PokemonSpecieORM
 
 
 class PokemonSpecieTypeORM(Base):

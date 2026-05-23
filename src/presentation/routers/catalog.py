@@ -1,13 +1,17 @@
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.application.use__cases.catalog.search_movements import SearchMovementsUseCase
 from src.application.use__cases.catalog.search_pokemon_species import (
     SearchPokemonSpeciesUseCase,
 )
 from src.domain.value_objects.types import Types
+from src.presentation.dependencies import (
+    get_search_movements_use_case,
+    get_search_pokemon_species_use_case,
+)
 from src.presentation.schemas.catalog import (
     BaseStatsResponse,
     CursorPagePokemonSpeciesResponse,
@@ -15,11 +19,11 @@ from src.presentation.schemas.catalog import (
     PokemonSpecieResponse,
 )
 
+SEARCH_POKEMON_SPECIES_USE_CASE_DEP = Depends(get_search_pokemon_species_use_case)
+SEARCH_MOVEMENTS_USE_CASE_DEP = Depends(get_search_movements_use_case)
 
-def create_catalog_router(
-    pokemon_species_use_case: SearchPokemonSpeciesUseCase,
-    movements_use_case: SearchMovementsUseCase,
-) -> APIRouter:
+
+def create_catalog_router() -> APIRouter:
     router = APIRouter(tags=["catalog"])
 
     def _parse_optional_type(raw_type: str | Types | None) -> Types | None:
@@ -50,6 +54,7 @@ def create_catalog_router(
         types: Annotated[list[Types] | None, Query()] = None,
         limit: Annotated[int, Query(gt=0)] = 10,
         cursor: str | None = None,
+        pokemon_species_use_case: SearchPokemonSpeciesUseCase = SEARCH_POKEMON_SPECIES_USE_CASE_DEP,  # noqa: E501
     ) -> CursorPagePokemonSpeciesResponse:
         try:
             page = await pokemon_species_use_case.execute(
@@ -94,6 +99,7 @@ def create_catalog_router(
     async def search_movements(
         type: str | None = None,
         specie_name: str | None = None,
+        movements_use_case: SearchMovementsUseCase = SEARCH_MOVEMENTS_USE_CASE_DEP,
     ) -> list[MovementResponse]:
         try:
             movements = await movements_use_case.execute(
