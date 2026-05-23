@@ -10,6 +10,7 @@ class PokemonSpecie:
         name: str,
         base_stats: BaseStats,
         types: tuple[Types, ...],
+        front_default_sprite: str,
     ):
         if id is not None and id <= 0:
             raise ValueError("Invalid id")
@@ -40,6 +41,7 @@ class PokemonSpecie:
         self.name = name
         self.base_stats = base_stats
         self._types = types
+        self.front_default_sprite = front_default_sprite
 
     @property
     def types(self):

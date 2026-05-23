@@ -53,6 +53,7 @@ class SearchPokemonSpeciesUseCase:
         )
 
         for specie in page.items:
+            print(specie.name)
             self._repository.save(specie)
 
         return page

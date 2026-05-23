@@ -9,7 +9,12 @@ def create_pokemon_team():
     return TeamPokemon(
         1,
         PokemonSpecie(
-            1, 25, "pikachu", BaseStats(35, 55, 40, 50, 50, 90), (Types.ELECTRIC,)
+            1,
+            25,
+            "pikachu",
+            BaseStats(35, 55, 40, 50, 50, 90),
+            (Types.ELECTRIC,),
+            front_default_sprite="https://example.com/pikachu.png",
         ),
         IVs(31, 31, 31, 31, 31, 31),
         [],

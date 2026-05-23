@@ -33,6 +33,7 @@ def test_search_movements_uses_gateway_and_persists_results():
         name="pikachu",
         base_stats=BaseStats(35, 55, 40, 50, 50, 90),
         types=(Types.ELECTRIC,),
+        front_default_sprite="https://example.com/pikachu.png",
     )
 
     pokemon_species_repository.search.return_value = CursorPage(
@@ -98,6 +99,7 @@ def test_search_movements_uses_cached_results_by_specie_without_gateway_call():
         name="pikachu",
         base_stats=BaseStats(35, 55, 40, 50, 50, 90),
         types=(Types.ELECTRIC,),
+        front_default_sprite="https://example.com/pikachu.png",
     )
     cached_movements = [
         Movement(

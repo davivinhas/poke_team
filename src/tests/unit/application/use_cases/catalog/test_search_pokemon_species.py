@@ -17,6 +17,7 @@ def _build_specie(id: int, external_id: int, name: str) -> PokemonSpecie:
         name=name,
         base_stats=BaseStats(35, 55, 40, 50, 50, 90),
         types=(Types.ELECTRIC,),
+        front_default_sprite=f"https://example.com/{name}.png",
     )
 
 

@@ -15,6 +15,7 @@ def _build_team_pokemon() -> TeamPokemon:
         "pikachu",
         BaseStats(35, 55, 40, 50, 50, 90),
         (Types.ELECTRIC,),
+        front_default_sprite="https://example.com/pikachu.png",
     )
     ivs = IVs(31, 31, 31, 31, 31, 31)
     return TeamPokemon(1, specie, ivs, [])

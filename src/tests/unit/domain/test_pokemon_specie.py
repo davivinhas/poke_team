@@ -4,6 +4,8 @@ from src.domain.entities.pokemon_specie import PokemonSpecie
 from src.domain.value_objects.base_stats import BaseStats
 from src.domain.value_objects.types import Types
 
+SPRITE = "https://example.com/pikachu.png"
+
 
 def create_pokemon_specie():
     return PokemonSpecie(
@@ -12,6 +14,7 @@ def create_pokemon_specie():
         "pikachu",
         BaseStats(35, 55, 40, 50, 50, 90),
         (Types.ELECTRIC,),
+        front_default_sprite=SPRITE,
     )
 
 
@@ -20,14 +23,9 @@ def test_create_pokemon_specie():
     assert pokemon_specie.id == 1
     assert pokemon_specie.external_id == 25
     assert pokemon_specie.name == "pikachu"
-    # assert pokemon_specie.base_stats.hp == 35
-    # assert pokemon_specie.base_stats.attack == 55
-    # assert pokemon_specie.base_stats.defense == 40
-    # assert pokemon_specie.base_stats.special_attack == 50
-    # assert pokemon_specie.base_stats.special_defense == 50
-    # assert pokemon_specie.base_stats.speed == 90
     assert pokemon_specie.base_stats == BaseStats(35, 55, 40, 50, 50, 90)
     assert pokemon_specie.types == (Types.ELECTRIC,)
+    assert pokemon_specie.front_default_sprite == SPRITE
 
 
 def test_pokemon_specie_has_types():
@@ -42,6 +40,7 @@ def test_pokemon_specie_has_two_types():
         "pikachu",
         BaseStats(35, 55, 40, 50, 50, 90),
         (Types.ELECTRIC, Types.FIRE),
+        front_default_sprite=SPRITE,
     )
     assert pokemon_specie.types == (Types.ELECTRIC, Types.FIRE)
 
@@ -54,6 +53,7 @@ def test_pokemon_specie_with_three_types():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (Types.ELECTRIC, Types.FIRE, Types.WATER),
+            front_default_sprite="",
         )
 
 
@@ -65,6 +65,7 @@ def test_pokemon_specie_with_zero_types():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (),
+            front_default_sprite="",
         )
 
 
@@ -76,6 +77,7 @@ def test_pokemon_specie_with_negative_id():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (Types.ELECTRIC,),
+            front_default_sprite="",
         )
 
 
@@ -87,6 +89,7 @@ def test_pokemon_specie_with_zero_id():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (Types.ELECTRIC,),
+            front_default_sprite="",
         )
 
 
@@ -98,6 +101,7 @@ def test_pokemon_specie_with_negative_external_id():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (Types.ELECTRIC,),
+            front_default_sprite="",
         )
 
 
@@ -109,6 +113,7 @@ def test_pokemon_specie_with_zero_external_id():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (Types.ELECTRIC,),
+            front_default_sprite="",
         )
 
 
@@ -120,6 +125,7 @@ def test_pokemon_specie_with_empty_name():
             "",
             BaseStats(35, 55, 40, 50, 50, 90),
             (Types.ELECTRIC,),
+            front_default_sprite="",
         )
 
 
@@ -131,6 +137,7 @@ def test_pokemon_specie_with_null_base_stats():
             "pikachu",
             None,
             (Types.ELECTRIC,),
+            front_default_sprite="",
         )
 
 
@@ -142,6 +149,7 @@ def test_pokemon_specie_with_null_types():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             None,
+            front_default_sprite="",
         )
 
 
@@ -153,6 +161,7 @@ def test_pokemon_specie_with_empty_types():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (),
+            front_default_sprite="",
         )
 
 
@@ -163,9 +172,11 @@ def test_pokemon_specie_with_null_id():
         "pikachu",
         BaseStats(35, 55, 40, 50, 50, 90),
         (Types.ELECTRIC,),
+        front_default_sprite=SPRITE,
     )
 
     assert pokemon_specie.id is None
+    assert pokemon_specie.front_default_sprite == SPRITE
 
 
 def test_pokemon_specie_with_null_external_id():
@@ -176,4 +187,5 @@ def test_pokemon_specie_with_null_external_id():
             "pikachu",
             BaseStats(35, 55, 40, 50, 50, 90),
             (Types.ELECTRIC,),
+            front_default_sprite="",
         )

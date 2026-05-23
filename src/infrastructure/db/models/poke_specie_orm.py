@@ -42,6 +42,9 @@ class PokemonSpecieORM(Base):
     special_attack: Mapped[int] = mapped_column(Integer, nullable=False)
     special_defense: Mapped[int] = mapped_column(Integer, nullable=False)
     speed: Mapped[int] = mapped_column(Integer, nullable=False)
+    front_default_sprite: Mapped[str] = mapped_column(
+        String(1000), nullable=False, default=""
+    )
     types: Mapped[List["PokemonSpecieTypeORM"]] = relationship(
         back_populates="specie",
         cascade="all, delete-orphan",

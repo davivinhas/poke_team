@@ -170,6 +170,7 @@ class PokeApiPokemonSpeciesGateway(PokemonSpeciesGateway):
             for item in sorted(payload["types"], key=lambda item: item["slot"])
         )
         external_id = int(payload["id"])
+        front_default = payload["sprites"]["front_default"]
 
         return PokemonSpecie(
             id=None,
@@ -184,6 +185,7 @@ class PokeApiPokemonSpeciesGateway(PokemonSpeciesGateway):
                 speed=stats_by_name["speed"],
             ),
             types=ordered_types,
+            front_default_sprite=front_default,
         )
 
     def _map_type(self, api_type_name: str) -> Types:

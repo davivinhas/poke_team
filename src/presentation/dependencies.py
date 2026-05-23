@@ -16,17 +16,17 @@ from src.infrastructure.pokeapi import (
     PokeApiPokemonSpeciesGateway,
 )
 from src.infrastructure.repositories import (
-    InMemoryMovementsRepository,
-    InMemoryPokemonSpeciesRepository,
+    SQLAlchemyMovementsRepository,
+    SQLAlchemyPokemonSpeciesRepository,
 )
 
 
 def get_pokemon_species_repository() -> PokemonSpeciesRepositoryPort:
-    return InMemoryPokemonSpeciesRepository()
+    return SQLAlchemyPokemonSpeciesRepository()
 
 
 def get_movements_repository() -> MovementsRepositoryPort:
-    return InMemoryMovementsRepository()
+    return SQLAlchemyMovementsRepository()
 
 
 async def get_pokemon_species_gateway() -> AsyncGenerator[PokemonSpeciesGateway, None]:
