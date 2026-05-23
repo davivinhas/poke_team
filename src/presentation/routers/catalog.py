@@ -86,6 +86,7 @@ def create_catalog_router() -> APIRouter:
                         speed=specie.base_stats.speed,
                     ),
                     types=[pokemon_type.value for pokemon_type in specie.types],
+                    front_default_sprite=specie.front_default_sprite,
                 )
                 for specie in page.items
             ],

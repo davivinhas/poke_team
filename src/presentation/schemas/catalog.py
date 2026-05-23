@@ -16,6 +16,7 @@ class PokemonSpecieResponse(BaseModel):
     name: str
     base_stats: BaseStatsResponse
     types: list[str]
+    front_default_sprite: str
 
 
 class CursorPagePokemonSpeciesResponse(BaseModel):
